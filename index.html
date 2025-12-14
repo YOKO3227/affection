@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>호감도창 GUI 생성기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #fff;
+            padding: 20px 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .export-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .export-btn:hover {
+            background: #2980b9;
+        }
+
+        .export-btn:active {
+            transform: scale(0.98);
+        }
+
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* 편집 패널 */
+        .editor-panel {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 100px);
+        }
+
+        .editor-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .editor-section:last-child {
+            border-bottom: none;
+        }
+
+        .editor-section h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .control-group input[type="text"],
+        .control-group input[type="number"],
+        .control-group input[type="color"],
+        .control-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .control-group input[type="text"]:focus,
+        .control-group input[type="number"]:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .control-group input[type="color"] {
+            height: 40px;
+            padding: 2px;
+            cursor: pointer;
+        }
+
+        .control-group input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .control-group input[type="number"]::-webkit-outer-spin-button,
+        .control-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* 미리보기 패널 */
+        .preview-panel {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-panel h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .preview-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 40px;
+            min-height: 500px;
+        }
+
+        .preview-window {
+            position: relative;
+            background: #f0f0f0;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 15px;
+            width: 400px;
+            height: 200px;
+            cursor: move;
+            user-select: none;
+            transition: opacity 0.2s;
+        }
+
+        .preview-window:hover {
+            border-color: #3498db;
+        }
+
+        .preview-window.selected {
+            border: 2px solid #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .preview-character-name {
+            position: absolute;
+            font-size: 20px;
+            font-weight: bold;
+            color: #000;
+            left: 10px;
+            top: 10px;
+            cursor: move;
+            user-select: none;
+            transition: opacity 0.2s;
+            border: 1px dashed transparent;
+        }
+
+        .preview-character-name:hover {
+            opacity: 0.8;
+            border-color: #3498db;
+        }
+
+        .preview-character-name.selected {
+            border: 2px solid #3498db;
+            background: rgba(52, 152, 219, 0.05);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .preview-character-name.dragging {
+            opacity: 0.6;
+            cursor: grabbing;
+        }
+
+        .preview-character-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            object-fit: cover;
+            cursor: move;
+            user-select: none;
+            transition: opacity 0.2s;
+            display: block;
+        }
+
+        .preview-character-image:hover {
+            opacity: 0.8;
+            border-color: #3498db;
+        }
+
+
+        #previewCharacterImageWrapper {
+            position: absolute;
+            left: 10px;
+            top: 50px;
+        }
+
+        #previewCharacterImageWrapper.selected {
+            border: 2px solid #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            border-radius: 50%;
+            border-style: solid;
+        }
+
+        .preview-character-image.dragging {
+            opacity: 0.6;
+            cursor: grabbing;
+        }
+
+        .preview-affection-value {
+            position: absolute;
+            font-size: 18px;
+            color: #333;
+            left: 200px;
+            top: 100px;
+            cursor: move;
+            user-select: none;
+            transition: opacity 0.2s;
+            border: 1px dashed transparent;
+            padding: 2px;
+        }
+
+        .preview-affection-value:hover {
+            opacity: 0.8;
+            border-color: #3498db;
+        }
+
+        .preview-affection-value.selected {
+            border: 2px solid #3498db;
+            background: rgba(52, 152, 219, 0.05);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        /* 호감도 수치는 폰트 크기로 리사이즈 (너비/높이 없음) */
+        .preview-affection-value.selected .resize-handle {
+            display: none; /* 호감도 수치는 리사이즈 핸들 없음 */
+        }
+
+        .preview-affection-value.dragging {
+            opacity: 0.6;
+            cursor: grabbing;
+        }
+
+        #previewAffectionBarWrapper {
+            position: absolute;
+            left: 200px;
+            top: 120px;
+        }
+
+        .preview-affection-bar {
+            width: 180px;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: move;
+            user-select: none;
+            transition: opacity 0.2s;
+            border: 1px dashed transparent;
+        }
+
+        .preview-affection-bar:hover {
+            opacity: 0.8;
+            border-color: #3498db;
+        }
+
+        #previewAffectionBarWrapper.selected {
+            border: 2px solid #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            border-style: solid;
+        }
+
+        .preview-affection-bar.selected {
+            border: 2px solid #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+
+        .preview-affection-bar.dragging {
+            opacity: 0.6;
+            cursor: grabbing;
+        }
+
+        /* 리사이즈 핸들 */
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #3498db;
+            border: 2px solid white;
+            border-radius: 50%;
+            display: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 1000;
+            cursor: nwse-resize;
+        }
+
+        #previewCharacterImageWrapper.selected .resize-handle,
+        #previewAffectionBarWrapper.selected .resize-handle,
+        .preview-window.selected .resize-handle {
+            display: block;
+        }
+
+        .resize-handle.br {
+            bottom: -5px;
+            right: -5px;
+        }
+
+
+        /* 선택된 요소의 z-index 조정 */
+        #previewCharacterImageWrapper.selected,
+        #previewAffectionBarWrapper.selected {
+            z-index: 100;
+        }
+
+        /* 드래그 중 크기 정보 표시 */
+        .drag-info {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            pointer-events: none;
+            z-index: 10000;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .preview-affection-bar-fill {
+            height: 100%;
+            background: #4CAF50;
+            border-radius: 10px;
+            width: 75%;
+            transition: width 0.3s ease;
+            pointer-events: none;
+        }
+
+        /* 스크롤바 스타일링 */
+        .editor-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .editor-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .editor-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .editor-panel::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* JSON 미리보기 패널 (하단 접이식) */
+        .json-preview-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            max-height: 60vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .json-preview-panel.collapsed {
+            transform: translateY(calc(100% - 50px));
+        }
+
+        .json-preview-panel-header {
+            background: #3498db;
+            color: white;
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .json-preview-panel-header:hover {
+            background: #2980b9;
+        }
+
+        .json-preview-panel-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .json-preview-panel-toggle {
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .json-preview-panel.collapsed .json-preview-panel-toggle {
+            transform: rotate(180deg);
+        }
+
+        .json-preview-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .json-preview-container {
+            flex: 1;
+            background: #1e1e1e;
+            border-radius: 6px;
+            padding: 15px;
+            overflow: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            min-height: 200px;
+        }
+
+        .json-preview-container pre {
+            margin: 0;
+            color: #d4d4d4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .json-preview-container .json-key {
+            color: #9cdcfe;
+        }
+
+        .json-preview-container .json-string {
+            color: #ce9178;
+        }
+
+        .json-preview-container .json-number {
+            color: #b5cea8;
+        }
+
+        .json-preview-container .json-boolean {
+            color: #569cd6;
+        }
+
+        .json-preview-container .json-null {
+            color: #569cd6;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>호감도창 GUI 생성기</h1>
+            <button id="exportBtn" class="export-btn">JSON 내보내기</button>
+        </header>
+
+        <div class="main-content">
+            <!-- 편집 패널 (좌측) -->
+            <div class="editor-panel">
+                <div class="editor-section">
+                    <h2>파라미터</h2>
+                    <div class="control-group">
+                        <label>캐릭터 이름</label>
+                        <input type="text" id="characterName" value="캐릭터 이름" placeholder="캐릭터 이름">
+                    </div>
+                    <div class="control-group">
+                        <label>호감도 수치</label>
+                        <input type="number" id="affectionValue" value="75" min="0" max="100" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>최대 호감도</label>
+                        <input type="number" id="maxAffection" value="100" min="1" step="1">
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h2>폰트 설정</h2>
+                    <div class="control-group">
+                        <label>폰트 모드</label>
+                        <select id="fontMode">
+                            <option value="default" selected>기본 폰트</option>
+                            <option value="r2">R2 폰트</option>
+                        </select>
+                    </div>
+                    <div class="control-group" id="r2FontGroup" style="display: none;">
+                        <label>R2 폰트 파일명</label>
+                        <input type="text" id="r2FontFilename" placeholder="예: NotoSansKR.ttf">
+                        <small style="display: block; margin-top: 4px; color: #666; font-size: 12px;">
+                            프로젝트 폴더 내 fonts/ 폴더에 업로드된 폰트 파일명
+                        </small>
+                    </div>
+                    <div class="control-group">
+                        <label>캐릭터 이름 폰트 패밀리</label>
+                        <select id="nameFontFamily">
+                            <option value="sans-serif">고딕체 (Sans-serif)</option>
+                            <option value="serif">명조체 (Serif)</option>
+                            <option value="monospace">고정폭 (Monospace)</option>
+                            <option value="'Noto Sans CJK KR', sans-serif" selected>Noto Sans CJK KR</option>
+                            <option value="'DejaVu Sans', sans-serif">DejaVu Sans</option>
+                            <option value="'Liberation Sans', sans-serif">Liberation Sans</option>
+                            <option value="custom">직접 입력...</option>
+                        </select>
+                        <input type="text" id="nameFontFamilyCustom" style="display: none; margin-top: 5px;" placeholder="예: 'CustomFont', sans-serif">
+                    </div>
+                    <div class="control-group">
+                        <label>호감도 수치 폰트 패밀리</label>
+                        <select id="valueFontFamily">
+                            <option value="sans-serif">고딕체 (Sans-serif)</option>
+                            <option value="serif">명조체 (Serif)</option>
+                            <option value="monospace">고정폭 (Monospace)</option>
+                            <option value="'Noto Sans CJK KR', sans-serif" selected>Noto Sans CJK KR</option>
+                            <option value="'DejaVu Sans', sans-serif">DejaVu Sans</option>
+                            <option value="'Liberation Sans', sans-serif">Liberation Sans</option>
+                            <option value="custom">직접 입력...</option>
+                        </select>
+                        <input type="text" id="valueFontFamilyCustom" style="display: none; margin-top: 5px;" placeholder="예: 'CustomFont', sans-serif">
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h2>전체 창 스타일</h2>
+                    <div class="control-group">
+                        <label>너비 (px)</label>
+                        <input type="number" id="containerWidth" value="400" min="100" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>높이 (px)</label>
+                        <input type="number" id="containerHeight" value="200" min="100" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>배경색</label>
+                        <input type="color" id="containerBgColor" value="#f0f0f0">
+                    </div>
+                    <div class="control-group">
+                        <label>테두리 두께 (px)</label>
+                        <input type="number" id="containerBorderWidth" value="2" min="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>테두리 색상</label>
+                        <input type="color" id="containerBorderColor" value="#333333">
+                    </div>
+                    <div class="control-group">
+                        <label>둥글기 (px)</label>
+                        <input type="number" id="containerBorderRadius" value="10" min="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>패딩 (px)</label>
+                        <input type="number" id="containerPadding" value="15" min="0" step="1">
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h2>캐릭터 이름 스타일</h2>
+                    <div class="control-group">
+                        <label>폰트 크기 (px)</label>
+                        <input type="number" id="nameFontSize" value="20" min="8" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>폰트 색상</label>
+                        <input type="color" id="nameColor" value="#000000">
+                    </div>
+                    <div class="control-group">
+                        <label>폰트 두께</label>
+                        <select id="nameFontWeight">
+                            <option value="normal">일반</option>
+                            <option value="bold" selected>굵게</option>
+                            <option value="lighter">얇게</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>정렬</label>
+                        <select id="nameTextAlign">
+                            <option value="left" selected>좌측</option>
+                            <option value="center">중앙</option>
+                            <option value="right">우측</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>위치 X (px)</label>
+                        <input type="number" id="nameX" value="10" min="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>위치 Y (px)</label>
+                        <input type="number" id="nameY" value="10" min="0" step="1">
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h2>캐릭터 이미지 스타일</h2>
+                    <div class="control-group">
+                        <label>너비 (px)</label>
+                        <input type="number" id="imageWidth" value="100" min="20" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>높이 (px)</label>
+                        <input type="number" id="imageHeight" value="100" min="20" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>둥글기 (px)</label>
+                        <input type="number" id="imageBorderRadius" value="50" min="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>테두리 두께 (px)</label>
+                        <input type="number" id="imageBorderWidth" value="2" min="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>테두리 색상</label>
+                        <input type="color" id="imageBorderColor" value="#cccccc">
+                    </div>
+                    <div class="control-group">
+                        <label>위치 X (px)</label>
+                        <input type="number" id="imageX" value="10" min="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>위치 Y (px)</label>
+                        <input type="number" id="imageY" value="50" min="0" step="1">
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h2>호감도 수치 스타일</h2>
+                    <div class="control-group">
+                        <label>폰트 크기 (px)</label>
+                        <input type="number" id="valueFontSize" value="18" min="8" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>폰트 색상</label>
+                        <input type="color" id="valueColor" value="#333333">
+                    </div>
+                    <div class="control-group">
+                        <label>폰트 두께</label>
+                        <select id="valueFontWeight">
+                            <option value="normal" selected>일반</option>
+                            <option value="bold">굵게</option>
+                            <option value="lighter">얇게</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>표시 형식</label>
+                        <select id="valueFormat">
+                            <option value="number" selected>숫자만 (75)</option>
+                            <option value="fraction">분수 (75/100)</option>
+                            <option value="percent">퍼센트 (75%)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>위치 X (px)</label>
+                        <input type="number" id="valueX" value="200" min="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>위치 Y (px)</label>
+                        <input type="number" id="valueY" value="100" min="0" step="1">
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h2>호감도 바 스타일</h2>
+                    <div class="control-group">
+                        <label>너비 (px)</label>
+                        <input type="number" id="barWidth" value="180" min="50" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>높이 (px)</label>
+                        <input type="number" id="barHeight" value="20" min="5" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>배경색</label>
+                        <input type="color" id="barBgColor" value="#e0e0e0">
+                    </div>
+                    <div class="control-group">
+                        <label>채움 색상</label>
+                        <input type="color" id="barFillColor" value="#4CAF50">
+                    </div>
+                    <div class="control-group">
+                        <label>둥글기 (px)</label>
+                        <input type="number" id="barBorderRadius" value="10" min="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>위치 X (px)</label>
+                        <input type="number" id="barX" value="200" min="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label>위치 Y (px)</label>
+                        <input type="number" id="barY" value="120" min="0" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 미리보기 패널 (우측) -->
+            <div class="preview-panel">
+                <h2>미리보기</h2>
+                <div class="preview-container">
+                    <div id="previewWindow" class="preview-window">
+                        <div class="resize-handle br" data-element="container"></div>
+                        <div id="previewCharacterName" class="preview-character-name">캐릭터 이름</div>
+                        <div id="previewCharacterImageWrapper" style="position: absolute; display: inline-block;">
+                            <img id="previewCharacterImage" class="preview-character-image" src="https://via.placeholder.com/100" alt="캐릭터 이미지">
+                            <div class="resize-handle br" data-element="characterImage"></div>
+                        </div>
+                        <div id="previewAffectionValue" class="preview-affection-value">75</div>
+                        <div id="previewAffectionBarWrapper" style="position: absolute; display: inline-block;">
+                            <div id="previewAffectionBar" class="preview-affection-bar">
+                                <div id="previewAffectionBarFill" class="preview-affection-bar-fill"></div>
+                            </div>
+                            <div class="resize-handle br" data-element="affectionBar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JSON 미리보기 패널 (하단 접이식) -->
+        <div class="json-preview-panel collapsed" id="jsonPreviewPanel">
+            <div class="json-preview-panel-header" id="jsonPreviewPanelToggle">
+                <h2>JSON 미리보기</h2>
+                <span class="json-preview-panel-toggle">▼</span>
+            </div>
+            <div class="json-preview-panel-content">
+                <div class="json-preview-container">
+                    <pre id="jsonPreview"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 상태 관리 객체
+        const state = {
+            parameters: {
+                characterName: '캐릭터 이름',
+                affectionValue: 75,
+                maxAffection: 100
+            },
+            styles: {
+                container: {},
+                characterName: {},
+                characterImage: {},
+                affectionValue: {},
+                affectionBar: {},
+                affectionBarFill: {}
+            },
+            layout: {
+                container: { width: 400, height: 200 },
+                characterName: { x: 10, y: 10 },
+                characterImage: { x: 10, y: 50 },
+                affectionValue: { x: 200, y: 100 },
+                affectionBar: { x: 200, y: 120, width: 180, height: 20 }
+            },
+            fonts: {
+                mode: 'default',
+                r2FontFilename: '',
+                nameFontFamily: "'Noto Sans CJK KR', sans-serif",
+                valueFontFamily: "'Noto Sans CJK KR', sans-serif"
+            }
+        };
+
+        // DOM 요소 참조
+        const elements = {
+            // 파라미터
+            characterName: document.getElementById('characterName'),
+            affectionValue: document.getElementById('affectionValue'),
+            maxAffection: document.getElementById('maxAffection'),
+            
+            // 컨테이너
+            containerWidth: document.getElementById('containerWidth'),
+            containerHeight: document.getElementById('containerHeight'),
+            containerBgColor: document.getElementById('containerBgColor'),
+            containerBorderWidth: document.getElementById('containerBorderWidth'),
+            containerBorderColor: document.getElementById('containerBorderColor'),
+            containerBorderRadius: document.getElementById('containerBorderRadius'),
+            containerPadding: document.getElementById('containerPadding'),
+            
+            // 캐릭터 이름
+            nameFontSize: document.getElementById('nameFontSize'),
+            nameColor: document.getElementById('nameColor'),
+            nameFontWeight: document.getElementById('nameFontWeight'),
+            nameTextAlign: document.getElementById('nameTextAlign'),
+            nameX: document.getElementById('nameX'),
+            nameY: document.getElementById('nameY'),
+            
+            // 이미지
+            imageWidth: document.getElementById('imageWidth'),
+            imageHeight: document.getElementById('imageHeight'),
+            imageBorderRadius: document.getElementById('imageBorderRadius'),
+            imageBorderWidth: document.getElementById('imageBorderWidth'),
+            imageBorderColor: document.getElementById('imageBorderColor'),
+            imageX: document.getElementById('imageX'),
+            imageY: document.getElementById('imageY'),
+            
+            // 호감도 수치
+            valueFontSize: document.getElementById('valueFontSize'),
+            valueColor: document.getElementById('valueColor'),
+            valueFontWeight: document.getElementById('valueFontWeight'),
+            valueFormat: document.getElementById('valueFormat'),
+            valueX: document.getElementById('valueX'),
+            valueY: document.getElementById('valueY'),
+            
+            // 호감도 바
+            barWidth: document.getElementById('barWidth'),
+            barHeight: document.getElementById('barHeight'),
+            barBgColor: document.getElementById('barBgColor'),
+            barFillColor: document.getElementById('barFillColor'),
+            barBorderRadius: document.getElementById('barBorderRadius'),
+            barX: document.getElementById('barX'),
+            barY: document.getElementById('barY'),
+            
+            // 폰트 설정
+            fontMode: document.getElementById('fontMode'),
+            r2FontFilename: document.getElementById('r2FontFilename'),
+            r2FontGroup: document.getElementById('r2FontGroup'),
+            nameFontFamily: document.getElementById('nameFontFamily'),
+            nameFontFamilyCustom: document.getElementById('nameFontFamilyCustom'),
+            valueFontFamily: document.getElementById('valueFontFamily'),
+            valueFontFamilyCustom: document.getElementById('valueFontFamilyCustom'),
+            
+            // 미리보기
+            previewWindow: document.getElementById('previewWindow'),
+            previewCharacterName: document.getElementById('previewCharacterName'),
+            previewCharacterImage: document.getElementById('previewCharacterImage'),
+            previewCharacterImageWrapper: document.getElementById('previewCharacterImageWrapper'),
+            previewAffectionValue: document.getElementById('previewAffectionValue'),
+            previewAffectionBar: document.getElementById('previewAffectionBar'),
+            previewAffectionBarWrapper: document.getElementById('previewAffectionBarWrapper'),
+            previewAffectionBarFill: document.getElementById('previewAffectionBarFill'),
+            
+            // 버튼
+            exportBtn: document.getElementById('exportBtn'),
+            
+            // JSON 미리보기
+            jsonPreview: document.getElementById('jsonPreview')
+        };
+
+        // 값 포맷팅 함수
+        function formatAffectionValue(value, max, format) {
+            switch(format) {
+                case 'fraction':
+                    return `${value}/${max}`;
+                case 'percent':
+                    return `${Math.round((value / max) * 100)}%`;
+                default:
+                    return value.toString();
+            }
+        }
+
+        // 미리보기 업데이트 함수
+        function updatePreview() {
+            // 파라미터 업데이트
+            elements.previewCharacterName.textContent = state.parameters.characterName;
+            // 이미지는 서버에서 자동으로 로드되므로 미리보기에서는 placeholder 사용
+            elements.previewCharacterImage.src = 'https://via.placeholder.com/100';
+            
+            const valueFormat = elements.valueFormat.value;
+            elements.previewAffectionValue.textContent = formatAffectionValue(
+                state.parameters.affectionValue,
+                state.parameters.maxAffection,
+                valueFormat
+            );
+            
+            // 호감도 바 채움 비율
+            const fillPercent = (state.parameters.affectionValue / state.parameters.maxAffection) * 100;
+            elements.previewAffectionBarFill.style.width = `${fillPercent}%`;
+            
+            // 컨테이너 스타일
+            const container = elements.previewWindow;
+            container.style.width = `${state.layout.container.width}px`;
+            container.style.height = `${state.layout.container.height}px`;
+            container.style.backgroundColor = state.styles.container.backgroundColor || '#f0f0f0';
+            container.style.borderWidth = `${state.styles.container.borderWidth || 2}px`;
+            container.style.borderColor = state.styles.container.borderColor || '#333';
+            container.style.borderRadius = `${state.styles.container.borderRadius || 10}px`;
+            container.style.padding = `${state.styles.container.padding || 15}px`;
+            
+            // 캐릭터 이름 스타일
+            const nameEl = elements.previewCharacterName;
+            nameEl.style.fontSize = `${state.styles.characterName.fontSize || 20}px`;
+            nameEl.style.color = state.styles.characterName.color || '#000';
+            nameEl.style.fontWeight = state.styles.characterName.fontWeight || 'bold';
+            nameEl.style.textAlign = state.styles.characterName.textAlign || 'left';
+            nameEl.style.left = `${state.layout.characterName.x}px`;
+            nameEl.style.top = `${state.layout.characterName.y}px`;
+            
+            // 이미지 스타일
+            const imageEl = elements.previewCharacterImage;
+            const imageWrapper = elements.previewCharacterImageWrapper;
+            
+            // state에 값이 없으면 입력 필드에서 직접 가져오기 (초기값 문제 해결)
+            const imageBorderRadius = state.styles.characterImage.borderRadius !== undefined 
+                ? state.styles.characterImage.borderRadius 
+                : (parseInt(elements.imageBorderRadius?.value) || 50);
+            const imageBorderWidth = state.styles.characterImage.borderWidth !== undefined 
+                ? state.styles.characterImage.borderWidth 
+                : (parseInt(elements.imageBorderWidth?.value) || 2);
+            
+            imageEl.style.width = `${state.layout.characterImage.width || 100}px`;
+            imageEl.style.height = `${state.layout.characterImage.height || 100}px`;
+            imageEl.style.borderRadius = `${imageBorderRadius}px`;
+            imageEl.style.borderWidth = `${imageBorderWidth}px`;
+            imageEl.style.borderColor = state.styles.characterImage.borderColor || '#ccc';
+            imageEl.style.borderStyle = 'solid';
+            imageWrapper.style.left = `${state.layout.characterImage.x}px`;
+            imageWrapper.style.top = `${state.layout.characterImage.y}px`;
+            
+            // 선택된 상태일 때 wrapper의 테두리도 실시간 업데이트 (변형(완) 방식)
+            // 항상 이미지의 실제 border-radius 값을 사용 (CSS 기본값 50% 무시)
+            if (imageWrapper.classList.contains('selected')) {
+                imageWrapper.style.borderWidth = `${imageBorderWidth}px`;
+                imageWrapper.style.borderRadius = `${imageBorderRadius}px`;  // 이미지와 동일한 값 사용
+                imageWrapper.style.borderColor = '#3498db';
+                imageWrapper.style.borderStyle = 'solid';
+            }
+            
+            // 호감도 수치 스타일
+            const valueEl = elements.previewAffectionValue;
+            valueEl.style.fontSize = `${state.styles.affectionValue.fontSize || 18}px`;
+            valueEl.style.color = state.styles.affectionValue.color || '#333';
+            valueEl.style.fontWeight = state.styles.affectionValue.fontWeight || 'normal';
+            valueEl.style.left = `${state.layout.affectionValue.x}px`;
+            valueEl.style.top = `${state.layout.affectionValue.y}px`;
+            
+            // 호감도 바 스타일
+            const barEl = elements.previewAffectionBar;
+            const barWrapper = elements.previewAffectionBarWrapper;
+            barEl.style.width = `${state.layout.affectionBar.width}px`;
+            barEl.style.height = `${state.layout.affectionBar.height}px`;
+            barEl.style.backgroundColor = state.styles.affectionBar.backgroundColor || '#e0e0e0';
+            barEl.style.borderRadius = `${state.styles.affectionBar.borderRadius || 10}px`;
+            barWrapper.style.left = `${state.layout.affectionBar.x}px`;
+            barWrapper.style.top = `${state.layout.affectionBar.y}px`;
+            
+            // 선택된 상태일 때 wrapper의 테두리도 실시간 업데이트
+            if (barWrapper.classList.contains('selected')) {
+                barWrapper.style.borderWidth = '2px';
+                barWrapper.style.borderColor = '#3498db';
+                barWrapper.style.borderStyle = 'solid';
+            }
+            
+            // 호감도 바 채움 스타일
+            const barFillEl = elements.previewAffectionBarFill;
+            barFillEl.style.backgroundColor = state.styles.affectionBarFill.backgroundColor || '#4CAF50';
+            barFillEl.style.borderRadius = `${state.styles.affectionBar.borderRadius || 10}px`;
+        }
+
+        // JSON 하이라이팅 함수
+        function highlightJSON(jsonString) {
+            return jsonString
+                .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+                    let cls = 'json-number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'json-key';
+                        } else {
+                            cls = 'json-string';
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'json-boolean';
+                    } else if (/null/.test(match)) {
+                        cls = 'json-null';
+                    }
+                    return '<span class="' + cls + '">' + match + '</span>';
+                });
+        }
+
+        // JSON 미리보기 업데이트 함수
+        function updateJSONPreview() {
+            if (!elements.jsonPreview) return;
+            
+            // JSON에는 고정 설정만 저장 (호감도 수치는 URL 파라미터로 받음)
+            const exportData = {
+                // 캐릭터 이름 (고정값)
+                characterName: state.parameters.characterName,
+                // 최대 호감도 값 (URL 파라미터 Value와 비교할 때 사용)
+                maxAffection: state.parameters.maxAffection,
+                // 호감도 바 스타일 및 레이아웃
+                affectionBar: {
+                    styles: {
+                        backgroundColor: state.styles.affectionBar.backgroundColor,
+                        fillColor: state.styles.affectionBarFill.backgroundColor,
+                        borderRadius: state.styles.affectionBar.borderRadius
+                    },
+                    layout: {
+                        width: state.layout.affectionBar.width,
+                        height: state.layout.affectionBar.height,
+                        x: state.layout.affectionBar.x,
+                        y: state.layout.affectionBar.y
+                    }
+                },
+                // 호감도 수치 표시 스타일 및 레이아웃
+                affectionValue: {
+                    styles: {
+                        fontSize: state.styles.affectionValue.fontSize,
+                        color: state.styles.affectionValue.color,
+                        fontWeight: state.styles.affectionValue.fontWeight
+                    },
+                    layout: {
+                        x: state.layout.affectionValue.x,
+                        y: state.layout.affectionValue.y
+                    },
+                    format: elements.valueFormat.value // 표시 형식 (number/fraction/percent)
+                },
+                // 전체 창 스타일
+                container: {
+                    styles: {
+                        backgroundColor: state.styles.container.backgroundColor,
+                        borderWidth: state.styles.container.borderWidth,
+                        borderColor: state.styles.container.borderColor,
+                        borderRadius: state.styles.container.borderRadius,
+                        padding: state.styles.container.padding
+                    },
+                    layout: {
+                        width: state.layout.container.width,
+                        height: state.layout.container.height
+                    }
+                },
+                // 캐릭터 이름 스타일 및 레이아웃
+                characterNameStyle: {
+                    styles: {
+                        fontSize: state.styles.characterName.fontSize,
+                        color: state.styles.characterName.color,
+                        fontWeight: state.styles.characterName.fontWeight,
+                        textAlign: state.styles.characterName.textAlign
+                    },
+                    layout: {
+                        x: state.layout.characterName.x,
+                        y: state.layout.characterName.y
+                    }
+                },
+                // 캐릭터 이미지 스타일 및 레이아웃
+                characterImage: {
+                    styles: {
+                        borderRadius: state.styles.characterImage.borderRadius,
+                        borderWidth: state.styles.characterImage.borderWidth,
+                        borderColor: state.styles.characterImage.borderColor
+                    },
+                    layout: {
+                        width: state.layout.characterImage.width,
+                        height: state.layout.characterImage.height,
+                        x: state.layout.characterImage.x,
+                        y: state.layout.characterImage.y
+                    }
+                },
+                // 폰트 설정
+                fontSettings: (() => {
+                    const settings = {
+                        mode: state.fonts.mode,
+                        nameFontFamily: state.fonts.nameFontFamily,
+                        valueFontFamily: state.fonts.valueFontFamily
+                    };
+                    // R2 폰트 파일명이 있으면 추가
+                    if (state.fonts.r2FontFilename && state.fonts.r2FontFilename.trim() !== '') {
+                        settings.r2FontFilename = state.fonts.r2FontFilename.trim();
+                    }
+                    return settings;
+                })(),
+                // 기본 스타일 (textinput 방식)
+                defaultStyle: {
+                    fontFamily: state.fonts.nameFontFamily || "'Noto Sans CJK KR', sans-serif",
+                    fontSize: state.styles.characterName.fontSize || 20,
+                    fill: state.styles.characterName.color || '#000000',
+                    fontWeight: state.styles.characterName.fontWeight || 'bold',
+                    textAlign: state.styles.characterName.textAlign || 'left'
+                }
+            };
+            
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const highlighted = highlightJSON(jsonString);
+            elements.jsonPreview.innerHTML = highlighted;
+        }
+
+        // 상태 업데이트 함수
+        function updateState() {
+            // 파라미터
+            state.parameters.characterName = elements.characterName.value;
+            state.parameters.affectionValue = parseInt(elements.affectionValue.value) || 0;
+            state.parameters.maxAffection = parseInt(elements.maxAffection.value) || 100;
+            
+            // 컨테이너
+            state.layout.container.width = parseInt(elements.containerWidth.value) || 400;
+            state.layout.container.height = parseInt(elements.containerHeight.value) || 200;
+            state.styles.container.backgroundColor = elements.containerBgColor.value;
+            state.styles.container.borderWidth = parseInt(elements.containerBorderWidth.value) || 0;
+            state.styles.container.borderColor = elements.containerBorderColor.value;
+            state.styles.container.borderRadius = parseInt(elements.containerBorderRadius.value) || 0;
+            state.styles.container.padding = parseInt(elements.containerPadding.value) || 0;
+            
+            // 캐릭터 이름
+            state.styles.characterName.fontSize = parseInt(elements.nameFontSize.value) || 20;
+            state.styles.characterName.color = elements.nameColor.value;
+            state.styles.characterName.fontWeight = elements.nameFontWeight.value;
+            state.styles.characterName.textAlign = elements.nameTextAlign.value;
+            state.layout.characterName.x = parseInt(elements.nameX.value) || 0;
+            state.layout.characterName.y = parseInt(elements.nameY.value) || 0;
+            
+            // 이미지
+            state.layout.characterImage.width = parseInt(elements.imageWidth.value) || 100;
+            state.layout.characterImage.height = parseInt(elements.imageHeight.value) || 100;
+            state.styles.characterImage.borderRadius = parseInt(elements.imageBorderRadius.value) || 0;
+            state.styles.characterImage.borderWidth = parseInt(elements.imageBorderWidth.value) || 0;
+            state.styles.characterImage.borderColor = elements.imageBorderColor.value;
+            state.layout.characterImage.x = parseInt(elements.imageX.value) || 0;
+            state.layout.characterImage.y = parseInt(elements.imageY.value) || 0;
+            
+            // 호감도 수치
+            state.styles.affectionValue.fontSize = parseInt(elements.valueFontSize.value) || 18;
+            state.styles.affectionValue.color = elements.valueColor.value;
+            state.styles.affectionValue.fontWeight = elements.valueFontWeight.value;
+            state.layout.affectionValue.x = parseInt(elements.valueX.value) || 0;
+            state.layout.affectionValue.y = parseInt(elements.valueY.value) || 0;
+            
+            // 호감도 바
+            state.layout.affectionBar.width = parseInt(elements.barWidth.value) || 180;
+            state.layout.affectionBar.height = parseInt(elements.barHeight.value) || 20;
+            state.styles.affectionBar.backgroundColor = elements.barBgColor.value;
+            state.styles.affectionBarFill.backgroundColor = elements.barFillColor.value;
+            state.styles.affectionBar.borderRadius = parseInt(elements.barBorderRadius.value) || 0;
+            state.layout.affectionBar.x = parseInt(elements.barX.value) || 0;
+            state.layout.affectionBar.y = parseInt(elements.barY.value) || 0;
+            
+            // 폰트 설정
+            state.fonts.mode = elements.fontMode.value;
+            state.fonts.r2FontFilename = elements.r2FontFilename.value;
+            
+            // 폰트 패밀리 처리
+            if (elements.nameFontFamily.value === 'custom') {
+                state.fonts.nameFontFamily = elements.nameFontFamilyCustom.value || 'sans-serif';
+            } else {
+                state.fonts.nameFontFamily = elements.nameFontFamily.value;
+            }
+            
+            if (elements.valueFontFamily.value === 'custom') {
+                state.fonts.valueFontFamily = elements.valueFontFamilyCustom.value || 'sans-serif';
+            } else {
+                state.fonts.valueFontFamily = elements.valueFontFamily.value;
+            }
+            
+            updatePreview();
+            updateJSONPreview();
+        }
+
+        // JSON 내보내기 함수
+        function exportToJSON() {
+            // 최종 상태 업데이트
+            updateState();
+            
+            // JSON에는 고정 설정만 저장 (호감도 수치는 URL 파라미터로 받음)
+            const exportData = {
+                // 캐릭터 이름 (고정값)
+                characterName: state.parameters.characterName,
+                // 최대 호감도 값 (URL 파라미터 Value와 비교할 때 사용)
+                maxAffection: state.parameters.maxAffection,
+                // 호감도 바 스타일 및 레이아웃
+                affectionBar: {
+                    styles: {
+                        backgroundColor: state.styles.affectionBar.backgroundColor,
+                        fillColor: state.styles.affectionBarFill.backgroundColor,
+                        borderRadius: state.styles.affectionBar.borderRadius
+                    },
+                    layout: {
+                        width: state.layout.affectionBar.width,
+                        height: state.layout.affectionBar.height,
+                        x: state.layout.affectionBar.x,
+                        y: state.layout.affectionBar.y
+                    }
+                },
+                // 호감도 수치 표시 스타일 및 레이아웃
+                affectionValue: {
+                    styles: {
+                        fontSize: state.styles.affectionValue.fontSize,
+                        color: state.styles.affectionValue.color,
+                        fontWeight: state.styles.affectionValue.fontWeight
+                    },
+                    layout: {
+                        x: state.layout.affectionValue.x,
+                        y: state.layout.affectionValue.y
+                    },
+                    format: elements.valueFormat.value // 표시 형식 (number/fraction/percent)
+                },
+                // 전체 창 스타일
+                container: {
+                    styles: {
+                        backgroundColor: state.styles.container.backgroundColor,
+                        borderWidth: state.styles.container.borderWidth,
+                        borderColor: state.styles.container.borderColor,
+                        borderRadius: state.styles.container.borderRadius,
+                        padding: state.styles.container.padding
+                    },
+                    layout: {
+                        width: state.layout.container.width,
+                        height: state.layout.container.height
+                    }
+                },
+                // 캐릭터 이름 스타일 및 레이아웃
+                characterNameStyle: {
+                    styles: {
+                        fontSize: state.styles.characterName.fontSize,
+                        color: state.styles.characterName.color,
+                        fontWeight: state.styles.characterName.fontWeight,
+                        textAlign: state.styles.characterName.textAlign
+                    },
+                    layout: {
+                        x: state.layout.characterName.x,
+                        y: state.layout.characterName.y
+                    }
+                },
+                // 캐릭터 이미지 스타일 및 레이아웃
+                characterImage: {
+                    styles: {
+                        borderRadius: state.styles.characterImage.borderRadius,
+                        borderWidth: state.styles.characterImage.borderWidth,
+                        borderColor: state.styles.characterImage.borderColor
+                    },
+                    layout: {
+                        width: state.layout.characterImage.width,
+                        height: state.layout.characterImage.height,
+                        x: state.layout.characterImage.x,
+                        y: state.layout.characterImage.y
+                    }
+                },
+                // 폰트 설정
+                fontSettings: (() => {
+                    const settings = {
+                        mode: state.fonts.mode,
+                        nameFontFamily: state.fonts.nameFontFamily,
+                        valueFontFamily: state.fonts.valueFontFamily
+                    };
+                    // R2 폰트 파일명이 있으면 추가
+                    if (state.fonts.r2FontFilename && state.fonts.r2FontFilename.trim() !== '') {
+                        settings.r2FontFilename = state.fonts.r2FontFilename.trim();
+                    }
+                    return settings;
+                })(),
+                // 기본 스타일 (textinput 방식)
+                defaultStyle: {
+                    fontFamily: state.fonts.nameFontFamily || "'Noto Sans CJK KR', sans-serif",
+                    fontSize: state.styles.characterName.fontSize || 20,
+                    fill: state.styles.characterName.color || '#000000',
+                    fontWeight: state.styles.characterName.fontWeight || 'bold',
+                    textAlign: state.styles.characterName.textAlign || 'left'
+                }
+            };
+            
+            // JSON 문자열로 변환
+            const jsonString = JSON.stringify(exportData, null, 2);
+            
+            // 다운로드
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'affection-window-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 드래그 앤 드롭 관련 변수
+        let dragState = {
+            isDragging: false,
+            isResizing: false,
+            element: null,
+            elementType: null,
+            dragStartX: 0,
+            dragStartY: 0,
+            elementStartX: 0,
+            elementStartY: 0,
+            elementStartWidth: 0,
+            elementStartHeight: 0
+        };
+
+        // 선택된 요소
+        let selectedElement = null;
+
+        // 드래그 정보 표시 요소
+        let dragInfoElement = null;
+
+        // 드래그 정보 표시 생성
+        function createDragInfo() {
+            if (!dragInfoElement) {
+                dragInfoElement = document.createElement('div');
+                dragInfoElement.className = 'drag-info';
+                dragInfoElement.style.display = 'none';
+                document.body.appendChild(dragInfoElement);
+            }
+            return dragInfoElement;
+        }
+
+        // 드래그 정보 업데이트
+        function updateDragInfo(x, y, info) {
+            const infoEl = createDragInfo();
+            infoEl.textContent = info;
+            infoEl.style.display = 'block';
+            infoEl.style.left = (x + 15) + 'px';
+            infoEl.style.top = (y - 30) + 'px';
+        }
+
+        // 드래그 정보 숨기기
+        function hideDragInfo() {
+            if (dragInfoElement) {
+                dragInfoElement.style.display = 'none';
+            }
+        }
+
+        // 요소 선택 함수
+        function selectElement(element, elementType) {
+            // 이전 선택 해제
+            if (selectedElement) {
+                selectedElement.classList.remove('selected');
+            }
+            
+            // 새 요소 선택
+            selectedElement = element;
+            selectedElement.classList.add('selected');
+        }
+
+        // 드래그 시작 함수
+        function startDrag(e, elementType) {
+            // 리사이즈 핸들 클릭인지 확인
+            if (e.target.classList.contains('resize-handle')) {
+                const handleElementType = e.target.getAttribute('data-element');
+                startResize(e, handleElementType);
+                return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 호감도 바의 경우 fill 요소를 클릭했을 때도 wrapper를 드래그하도록 처리
+            let element = e.target;
+            if (elementType === 'affectionBar') {
+                if (element.id === 'previewAffectionBarFill' || element.id === 'previewAffectionBar') {
+                    element = elements.previewAffectionBarWrapper;
+                }
+            }
+            
+            // 이미지의 경우 wrapper를 사용
+            if (elementType === 'characterImage') {
+                if (element.id === 'previewCharacterImage') {
+                    element = elements.previewCharacterImageWrapper;
+                }
+            }
+            
+            // 전체 창의 경우
+            if (elementType === 'container') {
+                element = elements.previewWindow;
+            }
+            
+            // 요소 선택
+            selectElement(element, elementType);
+            
+            // 현재 요소의 위치 가져오기
+            let currentX, currentY;
+            switch(elementType) {
+                case 'container':
+                    currentX = 0;
+                    currentY = 0;
+                    element = elements.previewWindow;
+                    break;
+                case 'characterName':
+                    currentX = state.layout.characterName.x;
+                    currentY = state.layout.characterName.y;
+                    break;
+                case 'characterImage':
+                    currentX = state.layout.characterImage.x;
+                    currentY = state.layout.characterImage.y;
+                    element = elements.previewCharacterImageWrapper;
+                    break;
+                case 'affectionValue':
+                    currentX = state.layout.affectionValue.x;
+                    currentY = state.layout.affectionValue.y;
+                    break;
+                case 'affectionBar':
+                    currentX = state.layout.affectionBar.x;
+                    currentY = state.layout.affectionBar.y;
+                    element = elements.previewAffectionBarWrapper;
+                    break;
+            }
+            
+            dragState.isDragging = true;
+            dragState.element = element;
+            dragState.elementType = elementType;
+            dragState.dragStartX = e.clientX;
+            dragState.dragStartY = e.clientY;
+            dragState.elementStartX = currentX;
+            dragState.elementStartY = currentY;
+            
+            element.classList.add('dragging');
+            
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+
+        // 리사이즈 시작 함수
+        function startResize(e, elementType) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            let element;
+            let currentWidth, currentHeight;
+            
+            switch(elementType) {
+                case 'container':
+                    element = elements.previewWindow;
+                    currentWidth = state.layout.container.width;
+                    currentHeight = state.layout.container.height;
+                    break;
+                case 'characterImage':
+                    element = elements.previewCharacterImageWrapper;
+                    currentWidth = state.layout.characterImage.width;
+                    currentHeight = state.layout.characterImage.height;
+                    break;
+                case 'affectionBar':
+                    element = elements.previewAffectionBarWrapper;
+                    currentWidth = state.layout.affectionBar.width;
+                    currentHeight = state.layout.affectionBar.height;
+                    break;
+                default:
+                    return;
+            }
+            
+            // 요소 선택
+            selectElement(element, elementType);
+            
+            dragState.isResizing = true;
+            dragState.element = element;
+            dragState.elementType = elementType;
+            dragState.dragStartX = e.clientX;
+            dragState.dragStartY = e.clientY;
+            dragState.elementStartWidth = currentWidth;
+            dragState.elementStartHeight = currentHeight;
+            
+            document.addEventListener('mousemove', onResize);
+            document.addEventListener('mouseup', stopResize);
+        }
+
+        // 드래그 중 함수
+        function onDrag(e) {
+            if (!dragState.isDragging) return;
+            
+            const container = elements.previewWindow;
+            const containerRect = container.getBoundingClientRect();
+            const padding = parseInt(state.styles.container.padding) || 0;
+            
+            // 델타 계산 (원본 방식)
+            const deltaX = e.clientX - dragState.dragStartX;
+            const deltaY = e.clientY - dragState.dragStartY;
+            
+            // 새 위치 계산
+            let newX = dragState.elementStartX + deltaX;
+            let newY = dragState.elementStartY + deltaY;
+            
+            // 경계 체크
+            const elementRect = dragState.element.getBoundingClientRect();
+            const elementWidth = elementRect.width;
+            const elementHeight = elementRect.height;
+            const containerWidth = containerRect.width - (padding * 2);
+            const containerHeight = containerRect.height - (padding * 2);
+            
+            newX = Math.max(0, Math.min(newX, containerWidth - elementWidth));
+            newY = Math.max(0, Math.min(newY, containerHeight - elementHeight));
+            
+            // 위치 업데이트
+            if (dragState.elementType === 'characterImage') {
+                elements.previewCharacterImageWrapper.style.left = `${newX}px`;
+                elements.previewCharacterImageWrapper.style.top = `${newY}px`;
+            } else if (dragState.elementType === 'affectionBar') {
+                elements.previewAffectionBarWrapper.style.left = `${newX}px`;
+                elements.previewAffectionBarWrapper.style.top = `${newY}px`;
+            } else {
+                dragState.element.style.left = `${newX}px`;
+                dragState.element.style.top = `${newY}px`;
+            }
+            
+            // 드래그 정보 표시
+            let infoText = '';
+            switch(dragState.elementType) {
+                case 'container':
+                    infoText = `X: ${Math.round(newX)} Y: ${Math.round(newY)} | 크기: ${state.layout.container.width}×${state.layout.container.height}px`;
+                    break;
+                case 'characterName':
+                    infoText = `X: ${Math.round(newX)} Y: ${Math.round(newY)} | 폰트: ${state.styles.characterName.fontSize}px`;
+                    break;
+                case 'characterImage':
+                    infoText = `X: ${Math.round(newX)} Y: ${Math.round(newY)} | 크기: ${state.layout.characterImage.width}×${state.layout.characterImage.height}px`;
+                    break;
+                case 'affectionValue':
+                    infoText = `X: ${Math.round(newX)} Y: ${Math.round(newY)} | 폰트: ${state.styles.affectionValue.fontSize}px`;
+                    break;
+                case 'affectionBar':
+                    infoText = `X: ${Math.round(newX)} Y: ${Math.round(newY)} | 크기: ${state.layout.affectionBar.width}×${state.layout.affectionBar.height}px`;
+                    break;
+            }
+            updateDragInfo(e.clientX, e.clientY, infoText);
+            
+            // 상태 및 입력 필드 업데이트
+            updatePositionFromDrag(dragState.elementType, newX, newY);
+        }
+
+        // 리사이즈 중 함수
+        function onResize(e) {
+            if (!dragState.isResizing) return;
+            
+            // 델타 계산
+            const deltaX = e.clientX - dragState.dragStartX;
+            const deltaY = e.clientY - dragState.dragStartY;
+            
+            // 새 크기 계산
+            let newWidth = dragState.elementStartWidth + deltaX;
+            let newHeight = dragState.elementStartHeight + deltaY;
+            
+            // 최소 크기 제한
+            switch(dragState.elementType) {
+                case 'container':
+                    newWidth = Math.max(200, newWidth);
+                    newHeight = Math.max(100, newHeight);
+                    break;
+                case 'characterImage':
+                    newWidth = Math.max(20, newWidth);
+                    newHeight = Math.max(20, newHeight);
+                    break;
+                case 'affectionBar':
+                    newWidth = Math.max(50, newWidth);
+                    newHeight = Math.max(5, newHeight);
+                    break;
+            }
+            
+            // 크기 업데이트
+            if (dragState.elementType === 'characterImage') {
+                elements.previewCharacterImage.style.width = `${newWidth}px`;
+                elements.previewCharacterImage.style.height = `${newHeight}px`;
+            } else if (dragState.elementType === 'affectionBar') {
+                elements.previewAffectionBar.style.width = `${newWidth}px`;
+                elements.previewAffectionBar.style.height = `${newHeight}px`;
+            } else {
+                dragState.element.style.width = `${newWidth}px`;
+                dragState.element.style.height = `${newHeight}px`;
+            }
+            
+            // 드래그 정보 표시
+            let infoText = '';
+            switch(dragState.elementType) {
+                case 'container':
+                    infoText = `크기: ${Math.round(newWidth)}×${Math.round(newHeight)}px`;
+                    break;
+                case 'characterImage':
+                    infoText = `크기: ${Math.round(newWidth)}×${Math.round(newHeight)}px`;
+                    break;
+                case 'affectionBar':
+                    infoText = `크기: ${Math.round(newWidth)}×${Math.round(newHeight)}px`;
+                    break;
+            }
+            updateDragInfo(e.clientX, e.clientY, infoText);
+            
+            // 상태 및 입력 필드 업데이트
+            updateSizeFromResize(dragState.elementType, newWidth, newHeight);
+        }
+
+        // 리사이즈로부터 크기 업데이트 및 입력 필드 동기화
+        function updateSizeFromResize(elementType, width, height) {
+            switch(elementType) {
+                case 'container':
+                    state.layout.container.width = Math.round(width);
+                    state.layout.container.height = Math.round(height);
+                    elements.containerWidth.value = Math.round(width);
+                    elements.containerHeight.value = Math.round(height);
+                    break;
+                case 'characterImage':
+                    state.layout.characterImage.width = Math.round(width);
+                    state.layout.characterImage.height = Math.round(height);
+                    elements.imageWidth.value = Math.round(width);
+                    elements.imageHeight.value = Math.round(height);
+                    break;
+                case 'affectionBar':
+                    state.layout.affectionBar.width = Math.round(width);
+                    state.layout.affectionBar.height = Math.round(height);
+                    elements.barWidth.value = Math.round(width);
+                    elements.barHeight.value = Math.round(height);
+                    break;
+            }
+            
+            // 미리보기 업데이트 (선택된 테두리 동기화를 위해)
+            updatePreview();
+            // JSON 미리보기 업데이트
+            updateJSONPreview();
+        }
+
+        // 드래그 종료 함수
+        function stopDrag() {
+            if (dragState.element) {
+                dragState.element.classList.remove('dragging');
+            }
+            
+            hideDragInfo();
+            
+            dragState.isDragging = false;
+            dragState.element = null;
+            dragState.elementType = null;
+            
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+
+        // 리사이즈 종료 함수
+        function stopResize() {
+            hideDragInfo();
+            
+            dragState.isResizing = false;
+            dragState.element = null;
+            dragState.elementType = null;
+            
+            document.removeEventListener('mousemove', onResize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        // 드래그로부터 위치 업데이트 및 입력 필드 동기화
+        function updatePositionFromDrag(elementType, x, y) {
+            switch(elementType) {
+                case 'characterName':
+                    state.layout.characterName.x = Math.round(x);
+                    state.layout.characterName.y = Math.round(y);
+                    elements.nameX.value = Math.round(x);
+                    elements.nameY.value = Math.round(y);
+                    break;
+                case 'characterImage':
+                    state.layout.characterImage.x = Math.round(x);
+                    state.layout.characterImage.y = Math.round(y);
+                    elements.imageX.value = Math.round(x);
+                    elements.imageY.value = Math.round(y);
+                    break;
+                case 'affectionValue':
+                    state.layout.affectionValue.x = Math.round(x);
+                    state.layout.affectionValue.y = Math.round(y);
+                    elements.valueX.value = Math.round(x);
+                    elements.valueY.value = Math.round(y);
+                    break;
+                case 'affectionBar':
+                    state.layout.affectionBar.x = Math.round(x);
+                    state.layout.affectionBar.y = Math.round(y);
+                    elements.barX.value = Math.round(x);
+                    elements.barY.value = Math.round(y);
+                    break;
+            }
+            
+            // JSON 미리보기 업데이트
+            updateJSONPreview();
+        }
+
+        // 드래그 이벤트 리스너 설정
+        function setupDragAndDrop() {
+            // 전체 창 (선택만 가능, 드래그는 안됨)
+            elements.previewWindow.addEventListener('mousedown', (e) => {
+                // 리사이즈 핸들이 아닌 경우에만 선택
+                if (!e.target.classList.contains('resize-handle')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectElement(elements.previewWindow, 'container');
+                }
+            });
+            
+            // 캐릭터 이름
+            elements.previewCharacterName.addEventListener('mousedown', (e) => startDrag(e, 'characterName'));
+            
+            // 캐릭터 이미지 (wrapper와 이미지 모두)
+            elements.previewCharacterImageWrapper.addEventListener('mousedown', (e) => startDrag(e, 'characterImage'));
+            elements.previewCharacterImage.addEventListener('mousedown', (e) => startDrag(e, 'characterImage'));
+            
+            // 호감도 수치
+            elements.previewAffectionValue.addEventListener('mousedown', (e) => startDrag(e, 'affectionValue'));
+            
+            // 호감도 바 (wrapper와 바, fill 모두)
+            elements.previewAffectionBarWrapper.addEventListener('mousedown', (e) => startDrag(e, 'affectionBar'));
+            elements.previewAffectionBar.addEventListener('mousedown', (e) => startDrag(e, 'affectionBar'));
+            elements.previewAffectionBarFill.addEventListener('mousedown', (e) => startDrag(e, 'affectionBar'));
+            
+            // 리사이즈 핸들 이벤트
+            document.querySelectorAll('.resize-handle').forEach(handle => {
+                handle.addEventListener('mousedown', (e) => {
+                    const elementType = handle.getAttribute('data-element');
+                    startResize(e, elementType);
+                });
+            });
+        }
+
+        // JSON 패널 토글 함수
+        function toggleJSONPanel() {
+            const panel = document.getElementById('jsonPreviewPanel');
+            if (panel) {
+                panel.classList.toggle('collapsed');
+            }
+        }
+
+        // 폰트 패밀리 선택 핸들러
+        function handleFontFamilySelect(selectId, customInputId) {
+            const select = document.getElementById(selectId);
+            const customInput = document.getElementById(customInputId);
+            
+            if (select.value === 'custom') {
+                select.style.display = 'none';
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                select.style.display = 'block';
+                updateState();
+            }
+        }
+
+        // 폰트 모드 변경 핸들러
+        function handleFontModeChange() {
+            const mode = elements.fontMode.value;
+            if (mode === 'r2') {
+                elements.r2FontGroup.style.display = 'block';
+            } else {
+                elements.r2FontGroup.style.display = 'none';
+            }
+            updateState();
+        }
+
+        // 이벤트 리스너 등록
+        function setupEventListeners() {
+            // 모든 입력 요소에 이벤트 리스너 추가
+            Object.values(elements).forEach(element => {
+                if (element && element !== elements.exportBtn && 
+                    element !== elements.previewWindow && 
+                    element !== elements.previewCharacterName &&
+                    element !== elements.previewCharacterImage &&
+                    element !== elements.previewAffectionValue &&
+                    element !== elements.previewAffectionBar &&
+                    element !== elements.previewAffectionBarFill &&
+                    element !== elements.jsonPreview &&
+                    element !== elements.r2FontGroup) {
+                    element.addEventListener('input', updateState);
+                    element.addEventListener('change', updateState);
+                }
+            });
+            
+            // 폰트 모드 변경
+            if (elements.fontMode) {
+                elements.fontMode.addEventListener('change', handleFontModeChange);
+            }
+            
+            // 폰트 패밀리 선택
+            if (elements.nameFontFamily) {
+                elements.nameFontFamily.addEventListener('change', () => {
+                    handleFontFamilySelect('nameFontFamily', 'nameFontFamilyCustom');
+                });
+            }
+            if (elements.nameFontFamilyCustom) {
+                elements.nameFontFamilyCustom.addEventListener('input', updateState);
+            }
+            
+            if (elements.valueFontFamily) {
+                elements.valueFontFamily.addEventListener('change', () => {
+                    handleFontFamilySelect('valueFontFamily', 'valueFontFamilyCustom');
+                });
+            }
+            if (elements.valueFontFamilyCustom) {
+                elements.valueFontFamilyCustom.addEventListener('input', updateState);
+            }
+            
+            // 내보내기 버튼
+            elements.exportBtn.addEventListener('click', exportToJSON);
+            
+            // JSON 미리보기 패널 토글
+            const jsonPanelToggle = document.getElementById('jsonPreviewPanelToggle');
+            if (jsonPanelToggle) {
+                jsonPanelToggle.addEventListener('click', toggleJSONPanel);
+            }
+        }
+
+        // 초기화
+        function init() {
+            setupEventListeners();
+            setupDragAndDrop();
+            updateState();
+        }
+
+        // DOM 로드 완료 시 초기화
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
+
